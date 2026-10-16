@@ -72,13 +72,22 @@ module cpu (
     // Temporary test values
     // ====================
 
-    assign opcode   = 3'b000; // ADD
-    assign we       = 1'b0;   // don't write yet
+    we = 1;
+    rd_addr = 1;
+    rd_data = 5;
 
-    assign rs1_addr = 5'd0;
-    assign rs2_addr = 5'd0;
-    assign rd_addr  = 5'd0;
+    rd_addr = 2;
+    rd_data = 3;
+
+    assign opcode   = 3'b000; // ADD
+
+    assign we       = 1'b1;
+
+    assign rs1_addr = 5'd1;
+    assign rs2_addr = 5'd2;
+    assign rd_addr  = 5'd3;
 
     assign rd_data  = alu_result;
+    
 
 endmodule
