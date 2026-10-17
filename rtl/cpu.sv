@@ -1,30 +1,39 @@
 module cpu (
-    input logic clk,
-    input logic reset
+    input logic        clk,
+    input logic        reset,
+    input logic [31:0] instruction
 );
 
     // Program Counter
     logic [31:0] pc_out;
 
-    // Decoder
-    logic [2:0] opcode;
-    logic [2:0] alu_op;
-
-    // Register File
-    logic        we;
+    // Decoder outputs
+    logic [2:0]  alu_op;
+    logic        alu_src;
     logic [4:0]  rs1_addr;
     logic [4:0]  rs2_addr;
     logic [4:0]  rd_addr;
 
+    // Immediate Generator output
+    logic [31:0] imm_out;
+
+    // Register File signals
+    logic        we;
     logic [31:0] rs1_data;
     logic [31:0] rs2_data;
     logic [31:0] rd_data;
 
-    // ALU
+    // ALU signals
+    logic [31:0] alu_b;
     logic [31:0] alu_result;
 
+    // Control & Datapath Glue
+    assign we      = 1'b1;                         // Always write for ALU instructions
+    assign alu_b   = alu_src ? imm_out : rs2_data; // Mux: selects between rs2 and immediate
+    assign rd_data = alu_result;                   // Write ALU result back to regfile
+
     // ====================
-    // Program Counter
+    // Module Instantiations
     // ====================
 
     pc pc_inst (
@@ -33,18 +42,19 @@ module cpu (
         .pc_out(pc_out)
     );
 
-    // ====================
-    // Decoder
-    // ====================
-
     decoder decoder_inst (
-        .opcode(opcode),
-        .alu_op(alu_op)
+        .instruction(instruction),
+        .rs1_addr   (rs1_addr),
+        .rs2_addr   (rs2_addr),
+        .rd_addr    (rd_addr),
+        .alu_op     (alu_op),
+        .alu_src    (alu_src)
     );
 
-    // ====================
-    // Register File
-    // ====================
+    imm_gen imm_gen_inst (
+        .instruction(instruction),
+        .imm_out    (imm_out)
+    );
 
     regfile regfile_inst (
         .clk(clk),
@@ -57,37 +67,11 @@ module cpu (
         .rs2_data(rs2_data)
     );
 
-    // ====================
-    // ALU
-    // ====================
-
     alu alu_inst (
         .a(rs1_data),
-        .b(rs2_data),
+        .b(alu_b),
         .op(alu_op),
         .result(alu_result)
     );
-
-    // ====================
-    // Temporary test values
-    // ====================
-
-    we = 1;
-    rd_addr = 1;
-    rd_data = 5;
-
-    rd_addr = 2;
-    rd_data = 3;
-
-    assign opcode   = 3'b000; // ADD
-
-    assign we       = 1'b1;
-
-    assign rs1_addr = 5'd1;
-    assign rs2_addr = 5'd2;
-    assign rd_addr  = 5'd3;
-
-    assign rd_data  = alu_result;
-    
 
 endmodule

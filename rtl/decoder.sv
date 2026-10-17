@@ -1,38 +1,61 @@
 module decoder (
     input  logic [31:0] instruction,
 
-    output logic [4:0] rs1_addr,
-    output logic [4:0] rs2_addr,
-    output logic [4:0] rd_addr,
+    output logic [4:0]  rs1_addr,
+    output logic [4:0]  rs2_addr,
+    output logic [4:0]  rd_addr,
 
-    output logic [2:0] alu_op
+    output logic [2:0]  alu_op,
+    output logic        alu_src
 );
+
+    logic [6:0] opcode;
+    logic [2:0] funct3;
+    logic [6:0] funct7;
+
+    assign opcode   = instruction[6:0];
+    assign funct3   = instruction[14:12];
+    assign funct7   = instruction[31:25];
 
     assign rs1_addr = instruction[19:15];
     assign rs2_addr = instruction[24:20];
     assign rd_addr  = instruction[11:7];
 
     always_comb begin
+        // Default values
+        alu_op  = 3'b000;
+        alu_src = 1'b0; // 0 = rs2_data, 1 = imm_out
 
-    case ({instruction[31:25], instruction[14:12]})
+        case (opcode)
+            // R-type instructions (ADD, SUB, AND, OR, XOR, SLL, SRL)
+            7'b0110011: begin
+                alu_src = 1'b0; // ALU uses rs2_data
+                case ({funct7, funct3})
+                    {7'b0000000, 3'b000}: alu_op = 3'b000; // ADD
+                    {7'b0100000, 3'b000}: alu_op = 3'b001; // SUB
+                    {7'b0000000, 3'b111}: alu_op = 3'b010; // AND
+                    {7'b0000000, 3'b110}: alu_op = 3'b011; // OR
+                    {7'b0000000, 3'b100}: alu_op = 3'b100; // XOR
+                    {7'b0000000, 3'b001}: alu_op = 3'b101; // SLL
+                    {7'b0000000, 3'b101}: alu_op = 3'b110; // SRL
+                    default:              alu_op = 3'b000;
+                endcase
+            end
 
-        {7'b0000000, 3'b000}: alu_op = 3'b000; // ADD
+            // I-type ALU instructions (ADDI)
+            7'b0010011: begin
+                alu_src = 1'b1; // ALU uses immediate value
+                case (funct3)
+                    3'b000:  alu_op = 3'b000; // ADDI (ALU performs addition)
+                    default: alu_op = 3'b000;
+                endcase
+            end
 
-        {7'b0100000, 3'b000}: alu_op = 3'b001; // SUB
-
-        {7'b0000000, 3'b111}: alu_op = 3'b010; // AND
-
-        {7'b0000000, 3'b110}: alu_op = 3'b011; // OR
-
-        {7'b0000000, 3'b100}: alu_op = 3'b100; // XOR
-
-        {7'b0000000, 3'b001}: alu_op = 3'b101; // SLL
-
-        {7'b0000000, 3'b101}: alu_op = 3'b110; // SRL
-
-        default: alu_op = 3'b000;
-
-    endcase
-
+            default: begin
+                alu_op  = 3'b000;
+                alu_src = 1'b0;
+            end
+        endcase
     end
+
 endmodule
