@@ -6,7 +6,11 @@ module decoder (
     output logic [4:0]  rd_addr,
 
     output logic [2:0]  alu_op,
-    output logic        alu_src
+    output logic        alu_src,
+    output logic        mem_read,
+    output logic        mem_write,
+    output logic        mem_to_reg,
+    output logic        reg_write
 );
 
     logic [6:0] opcode;
@@ -22,14 +26,19 @@ module decoder (
     assign rd_addr  = instruction[11:7];
 
     always_comb begin
-        // Default values
-        alu_op  = 3'b000;
-        alu_src = 1'b0; // 0 = rs2_data, 1 = imm_out
+        // Standaardwaarden (Default control signals)
+        alu_op     = 3'b000;
+        alu_src    = 1'b0; // 0 = rs2_data, 1 = imm_out
+        mem_read   = 1'b0;
+        mem_write  = 1'b0;
+        mem_to_reg = 1'b0; // 0 = ALU result, 1 = RAM read_data
+        reg_write  = 1'b0;
 
         case (opcode)
             // R-type instructions (ADD, SUB, AND, OR, XOR, SLL, SRL)
             7'b0110011: begin
-                alu_src = 1'b0; // ALU uses rs2_data
+                reg_write = 1'b1;
+                alu_src   = 1'b0;
                 case ({funct7, funct3})
                     {7'b0000000, 3'b000}: alu_op = 3'b000; // ADD
                     {7'b0100000, 3'b000}: alu_op = 3'b001; // SUB
@@ -44,16 +53,38 @@ module decoder (
 
             // I-type ALU instructions (ADDI)
             7'b0010011: begin
-                alu_src = 1'b1; // ALU uses immediate value
+                reg_write = 1'b1;
+                alu_src   = 1'b1;
                 case (funct3)
-                    3'b000:  alu_op = 3'b000; // ADDI (ALU performs addition)
+                    3'b000:  alu_op = 3'b000; // ADDI
                     default: alu_op = 3'b000;
                 endcase
             end
 
+            // I-type Load instruction (LW)
+            7'b0000011: begin
+                reg_write  = 1'b1;
+                alu_src    = 1'b1;    // Gebruik immediate offset
+                alu_op     = 3'b000;  // ALU berekent adres: rs1 + offset
+                mem_read   = 1'b1;    // Lees uit RAM
+                mem_to_reg = 1'b1;    // Schrijf RAM data naar Register File
+            end
+
+            // S-type Store instruction (SW)
+            7'b0100011: begin
+                reg_write  = 1'b0;    // Schrijf NIETS naar Register File!
+                alu_src    = 1'b1;    // Gebruik immediate offset
+                alu_op     = 3'b000;  // ALU berekent adres: rs1 + offset
+                mem_write  = 1'b1;    // Schrijf naar RAM
+            end
+
             default: begin
-                alu_op  = 3'b000;
-                alu_src = 1'b0;
+                alu_op     = 3'b000;
+                alu_src    = 1'b0;
+                mem_read   = 1'b0;
+                mem_write  = 1'b0;
+                mem_to_reg = 1'b0;
+                reg_write  = 1'b0;
             end
         endcase
     end
