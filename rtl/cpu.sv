@@ -1,7 +1,7 @@
 module cpu (
-    input logic        clk,
-    input logic        reset,
-    input logic [31:0] instruction
+    input  logic        clk,
+    input  logic        reset,
+    input  logic [31:0] instruction
 );
 
     // Program Counter
@@ -27,10 +27,27 @@ module cpu (
     logic [31:0] alu_b;
     logic [31:0] alu_result;
 
-    // Control & Datapath Glue
-    assign we      = 1'b1;                         // Always write for ALU instructions
-    assign alu_b   = alu_src ? imm_out : rs2_data; // Mux: selects between rs2 and immediate
-    assign rd_data = alu_result;                   // Write ALU result back to regfile
+    // Data Memory signals
+    logic mem_we;
+    logic mem_read;
+    logic mem_to_reg;
+    logic [31:0] mem_read_data;
+
+    // ====================
+    // Datapath glue
+    // ====================
+
+    // voorlopig enkel ALU instructions
+    assign we         = 1'b1;
+    assign mem_we     = 1'b0;
+    assign mem_to_reg = 1'b0;
+
+    assign alu_b = alu_src ? imm_out : rs2_data;
+
+    // writeback mux
+    assign rd_data = mem_to_reg
+                   ? mem_read_data
+                   : alu_result;
 
     // ====================
     // Module Instantiations
@@ -44,16 +61,16 @@ module cpu (
 
     decoder decoder_inst (
         .instruction(instruction),
-        .rs1_addr   (rs1_addr),
-        .rs2_addr   (rs2_addr),
-        .rd_addr    (rd_addr),
-        .alu_op     (alu_op),
-        .alu_src    (alu_src)
+        .rs1_addr(rs1_addr),
+        .rs2_addr(rs2_addr),
+        .rd_addr(rd_addr),
+        .alu_op(alu_op),
+        .alu_src(alu_src)
     );
 
     imm_gen imm_gen_inst (
         .instruction(instruction),
-        .imm_out    (imm_out)
+        .imm_out(imm_out)
     );
 
     regfile regfile_inst (
@@ -72,6 +89,15 @@ module cpu (
         .b(alu_b),
         .op(alu_op),
         .result(alu_result)
+    );
+
+    data_memory dmem_inst (
+        .clk(clk),
+        .mem_write(mem_we),
+        .mem_read(mem_read),
+        .addr(alu_result),
+        .write_data(rs2_data),
+        .read_data(mem_read_data)
     );
 
 endmodule

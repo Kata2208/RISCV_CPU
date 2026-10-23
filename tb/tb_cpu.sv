@@ -4,57 +4,74 @@ module tb_cpu;
     logic        reset;
     logic [31:0] instruction;
 
-    // Instantiate top-level CPU
+    // DUT
     cpu dut (
         .clk(clk),
         .reset(reset),
         .instruction(instruction)
     );
 
-    // Clock generation (10ns period)
+    // Clock generation
     initial begin
         clk = 0;
         forever #5 clk = ~clk;
     end
 
     initial begin
-        // 1. Reset Phase
+
+        // ====================
+        // Reset
+        // ====================
         reset = 1;
-        instruction = 32'h00000013; // NOP (ADDI x0, x0, 0)
-        #10;
+        instruction = 32'h00000013; // NOP
+        @(posedge clk);
 
         reset = 0;
-        #10;
+        @(posedge clk);
 
-        // 2. Instruction 1: ADDI x1, x0, 5 (Machine code: 0x00500093)
+        // ====================
+        // ADDI x1, x0, 5
+        // ====================
         instruction = 32'h00500093;
-        #10;
+        @(posedge clk);
 
-        // 3. Instruction 2: ADDI x2, x0, 3 (Machine code: 0x00300113)
+        // ====================
+        // ADDI x2, x0, 3
+        // ====================
         instruction = 32'h00300113;
-        #10;
+        @(posedge clk);
 
-        // 4. Instruction 3: ADD x3, x1, x2 (Machine code: 0x002081B3)
+        // ====================
+        // ADD x3, x1, x2
+        // ====================
         instruction = 32'h002081B3;
-        #10;
+        @(posedge clk);
 
-        // 5. Verification checks
-        #1;
-        assert(dut.regfile_inst.regs[1] == 5)
-            else $error("ADDI x1 failed! Expected 5, got %d", dut.regfile_inst.regs[1]);
+        // Laat writeback gebeuren
+        @(posedge clk);
 
-        assert(dut.regfile_inst.regs[2] == 3)
-            else $error("ADDI x2 failed! Expected 3, got %d", dut.regfile_inst.regs[2]);
+        // ====================
+        // Checks
+        // ====================
 
-        assert(dut.regfile_inst.regs[3] == 8)
-            else $error("ADD x3 failed! Expected 8, got %d", dut.regfile_inst.regs[3]);
+        assert(dut.regfile_inst.regs[1] == 32'd5)
+            else $fatal("x1 incorrect: got %0d expected 5",
+                        dut.regfile_inst.regs[1]);
 
-        $display("--------------------------------------------------");
-        $display("SUCCESS: ADDI and ADD executed correctly!");
-        $display("x1 = %d (Expected 5)", dut.regfile_inst.regs[1]);
-        $display("x2 = %d (Expected 3)", dut.regfile_inst.regs[2]);
-        $display("x3 = %d (Expected 8)", dut.regfile_inst.regs[3]);
-        $display("--------------------------------------------------");
+        assert(dut.regfile_inst.regs[2] == 32'd3)
+            else $fatal("x2 incorrect: got %0d expected 3",
+                        dut.regfile_inst.regs[2]);
+
+        assert(dut.regfile_inst.regs[3] == 32'd8)
+            else $fatal("x3 incorrect: got %0d expected 8",
+                        dut.regfile_inst.regs[3]);
+
+        $display("--------------------------------");
+        $display("CPU TEST PASSED");
+        $display("x1 = %0d", dut.regfile_inst.regs[1]);
+        $display("x2 = %0d", dut.regfile_inst.regs[2]);
+        $display("x3 = %0d", dut.regfile_inst.regs[3]);
+        $display("--------------------------------");
 
         $finish;
     end
