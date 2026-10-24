@@ -10,7 +10,8 @@ module decoder (
     output logic        mem_read,
     output logic        mem_write,
     output logic        mem_to_reg,
-    output logic        reg_write
+    output logic        reg_write,
+    output logic        branch
 );
 
     logic [6:0] opcode;
@@ -26,13 +27,14 @@ module decoder (
     assign rd_addr  = instruction[11:7];
 
     always_comb begin
-        // Standaardwaarden (Default control signals)
+        // Default control signals
         alu_op     = 3'b000;
         alu_src    = 1'b0; // 0 = rs2_data, 1 = imm_out
         mem_read   = 1'b0;
         mem_write  = 1'b0;
-        mem_to_reg = 1'b0; // 0 = ALU result, 1 = RAM read_data
+        mem_to_reg = 1'b0;
         reg_write  = 1'b0;
+        branch     = 1'b0;
 
         case (opcode)
             // R-type instructions (ADD, SUB, AND, OR, XOR, SLL, SRL)
@@ -64,18 +66,26 @@ module decoder (
             // I-type Load instruction (LW)
             7'b0000011: begin
                 reg_write  = 1'b1;
-                alu_src    = 1'b1;    // Gebruik immediate offset
-                alu_op     = 3'b000;  // ALU berekent adres: rs1 + offset
-                mem_read   = 1'b1;    // Lees uit RAM
-                mem_to_reg = 1'b1;    // Schrijf RAM data naar Register File
+                alu_src    = 1'b1;
+                alu_op     = 3'b000;
+                mem_read   = 1'b1;
+                mem_to_reg = 1'b1;
             end
 
             // S-type Store instruction (SW)
             7'b0100011: begin
-                reg_write  = 1'b0;    // Schrijf NIETS naar Register File!
-                alu_src    = 1'b1;    // Gebruik immediate offset
-                alu_op     = 3'b000;  // ALU berekent adres: rs1 + offset
-                mem_write  = 1'b1;    // Schrijf naar RAM
+                reg_write  = 1'b0;
+                alu_src    = 1'b1;
+                alu_op     = 3'b000;
+                mem_write  = 1'b1;
+            end
+
+            // B-type Branch instructions (BEQ)
+            7'b1100011: begin
+                reg_write  = 1'b0;    // Do not write to regfile
+                alu_src    = 1'b0;    // Compare rs1 and rs2
+                alu_op     = 3'b001;  // SUB (rs1 - rs2) to test equality
+                branch     = 1'b1;    // Enable branch control
             end
 
             default: begin
@@ -85,6 +95,7 @@ module decoder (
                 mem_write  = 1'b0;
                 mem_to_reg = 1'b0;
                 reg_write  = 1'b0;
+                branch     = 1'b0;
             end
         endcase
     end

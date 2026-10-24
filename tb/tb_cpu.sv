@@ -20,33 +20,26 @@ module tb_cpu;
 
         reset = 0;
 
-        // 2. Run for 5 clock cycles
-        #50; // 5 * 10ns = 50ns
+        // 2. Run for 6 clock cycles to complete execution
+        #60;
 
         // 3. Verification checks
         #1;
         assert(dut.regfile_inst.regs[1] == 5)
-            else $error("Execution failed! Expected x1 = 5, got %d", dut.regfile_inst.regs[1]);
+            else $error("Branch Test Failed! Expected x1 = 5, got %d", dut.regfile_inst.regs[1]);
 
-        assert(dut.regfile_inst.regs[2] == 3)
-            else $error("Execution failed! Expected x2 = 3, got %d", dut.regfile_inst.regs[2]);
+        assert(dut.regfile_inst.regs[2] == 5)
+            else $error("Branch Test Failed! Expected x2 = 5, got %d", dut.regfile_inst.regs[2]);
 
-        assert(dut.regfile_inst.regs[3] == 8)
-            else $error("Execution failed! Expected x3 = 8, got %d", dut.regfile_inst.regs[3]);
-
-        assert(dut.dmem_inst.mem[1] == 8) // Word index 1 = Address 0x04
-            else $error("SW failed! Expected RAM[4] = 8, got %d", dut.dmem_inst.mem[1]);
-
-        assert(dut.regfile_inst.regs[4] == 8)
-            else $error("LW failed! Expected x4 = 8, got %d", dut.regfile_inst.regs[4]);
+        assert(dut.regfile_inst.regs[3] == 42)
+            else $error("Branch Test Failed! Expected x3 = 42 (skipped instruction 99), got %d", dut.regfile_inst.regs[3]);
 
         $display("--------------------------------------------------");
-        $display("SUCCESS: Full program with LW and SW executed!");
+        $display("SUCCESS: Branch instruction (BEQ) executed correctly!");
         $display("x1 = %d (Expected 5)", dut.regfile_inst.regs[1]);
-        $display("x2 = %d (Expected 3)", dut.regfile_inst.regs[2]);
-        $display("x3 = %d (Expected 8)", dut.regfile_inst.regs[3]);
-        $display("RAM[0x04] = %d (Expected 8)", dut.dmem_inst.mem[1]);
-        $display("x4 = %d (Expected 8, loaded from RAM)", dut.regfile_inst.regs[4]);
+        $display("x2 = %d (Expected 5)", dut.regfile_inst.regs[2]);
+        $display("x3 = %d (Expected 42, instruction at mem[5] was skipped)", dut.regfile_inst.regs[3]);
+        $display("Final PC = 0x%08h", dut.pc_inst.pc_out);
         $display("--------------------------------------------------");
 
         $finish;
