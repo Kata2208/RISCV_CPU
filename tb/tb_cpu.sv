@@ -8,25 +8,30 @@ module tb_cpu;
         .reset(reset)
     );
 
+    // Clock generation (10ns period)
     initial begin
         clk = 0;
         forever #5 clk = ~clk;
     end
 
     initial begin
+        // Waveform dump setup for GTKWave
+        $dumpfile("waveform.vcd");
+        $dumpvars(0, tb_cpu);
+
         // 1. Reset Phase
         reset = 1;
         #10;
 
         reset = 0;
 
-        // 2. Run for 25 clock cycles to allow the loop to finish
+        // 2. Run simulation
         #250;
 
         // 3. Verification check
         #1;
         assert(dut.regfile_inst.regs[2] == 15)
-            else $error("Loop Test Failed! Expected x2 = 15 (1+2+3+4+5), got %d", dut.regfile_inst.regs[2]);
+            else $error("Loop Test Failed! Expected x2 = 15, got %d", dut.regfile_inst.regs[2]);
 
         $display("--------------------------------------------------");
         $display("SUCCESS: CPU successfully executed a hardware loop!");
