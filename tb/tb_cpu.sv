@@ -20,25 +20,18 @@ module tb_cpu;
 
         reset = 0;
 
-        // 2. Run for 6 clock cycles to complete execution
-        #60;
+        // 2. Run for 25 clock cycles to allow the loop to finish
+        #250;
 
-        // 3. Verification checks
+        // 3. Verification check
         #1;
-        assert(dut.regfile_inst.regs[1] == 5)
-            else $error("Branch Test Failed! Expected x1 = 5, got %d", dut.regfile_inst.regs[1]);
-
-        assert(dut.regfile_inst.regs[2] == 5)
-            else $error("Branch Test Failed! Expected x2 = 5, got %d", dut.regfile_inst.regs[2]);
-
-        assert(dut.regfile_inst.regs[3] == 42)
-            else $error("Branch Test Failed! Expected x3 = 42 (skipped instruction 99), got %d", dut.regfile_inst.regs[3]);
+        assert(dut.regfile_inst.regs[2] == 15)
+            else $error("Loop Test Failed! Expected x2 = 15 (1+2+3+4+5), got %d", dut.regfile_inst.regs[2]);
 
         $display("--------------------------------------------------");
-        $display("SUCCESS: Branch instruction (BEQ) executed correctly!");
-        $display("x1 = %d (Expected 5)", dut.regfile_inst.regs[1]);
-        $display("x2 = %d (Expected 5)", dut.regfile_inst.regs[2]);
-        $display("x3 = %d (Expected 42, instruction at mem[5] was skipped)", dut.regfile_inst.regs[3]);
+        $display("SUCCESS: CPU successfully executed a hardware loop!");
+        $display("Sum (x2) = %d (Expected 15)", dut.regfile_inst.regs[2]);
+        $display("Counter (x1) = %d (Expected 0)", dut.regfile_inst.regs[1]);
         $display("Final PC = 0x%08h", dut.pc_inst.pc_out);
         $display("--------------------------------------------------");
 
