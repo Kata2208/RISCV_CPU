@@ -6,7 +6,7 @@ module cpu (
     // Program Counter signals
     logic [31:0] pc_out;
     logic [31:0] pc_plus_4;
-    logic [31:0] pc_taget;
+    logic [31:0] pc_target;
     logic [31:0] next_pc;
     logic        pc_src;
 
