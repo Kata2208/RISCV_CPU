@@ -8,9 +8,10 @@ module imm_gen (
 
     always_comb begin
         case (opcode)
-            // I-type (ADDI, LW)
+            // I-type (ADDI, LW, JALR)
             7'b0010011, 
-            7'b0000011: begin
+            7'b0000011,
+            7'b1100111: begin
                 imm_out = {{20{instruction[31]}}, instruction[31:20]};
             end
 
@@ -19,9 +20,14 @@ module imm_gen (
                 imm_out = {{20{instruction[31]}}, instruction[31:25], instruction[11:7]};
             end
 
-            // B-type (BEQ, BNE)
+            // B-type (BEQ)
             7'b1100011: begin
                 imm_out = {{19{instruction[31]}}, instruction[31], instruction[7], instruction[30:25], instruction[11:8], 1'b0};
+            end
+
+            // J-type (JAL)
+            7'b1101111: begin
+                imm_out = {{11{instruction[31]}}, instruction[31], instruction[19:12], instruction[20], instruction[30:21], 1'b0};
             end
 
             default: begin

@@ -9,9 +9,11 @@ module decoder (
     output logic        alu_src,
     output logic        mem_read,
     output logic        mem_write,
-    output logic        mem_to_reg,
+    output logic [1:0]  result_src,
     output logic        reg_write,
-    output logic        branch
+    output logic        branch,
+    output logic        jump,
+    output logic        jalr
 );
 
     logic [6:0] opcode;
@@ -32,9 +34,11 @@ module decoder (
         alu_src    = 1'b0; // 0 = rs2_data, 1 = imm_out
         mem_read   = 1'b0;
         mem_write  = 1'b0;
-        mem_to_reg = 1'b0;
+        result_src = 2'b00; // 00 = ALU, 01 = DMEM, 10 = PC + 4
         reg_write  = 1'b0;
         branch     = 1'b0;
+        jump       = 1'b0;
+        jalr       = 1'b0;
 
         case (opcode)
             // R-type instructions (ADD, SUB, AND, OR, XOR, SLL, SRL)
@@ -69,7 +73,7 @@ module decoder (
                 alu_src    = 1'b1;
                 alu_op     = 3'b000;
                 mem_read   = 1'b1;
-                mem_to_reg = 1'b1;
+                result_src = 2'b01;   // write-back = DMEM
             end
 
             // S-type Store instruction (SW)
@@ -88,14 +92,33 @@ module decoder (
                 branch     = 1'b1;    // Enable branch control
             end
 
+            // J-type Jump instruction (JAL)
+            7'b1101111: begin
+                reg_write  = 1'b1;    // rd = PC + 4
+                result_src = 2'b10;   // write-back = PC + 4
+                jump       = 1'b1;    // always taken, target = PC + imm
+            end
+
+            // I-type Jump instruction (JALR)
+            7'b1100111: begin
+                reg_write  = 1'b1;    // rd = PC + 4
+                alu_src    = 1'b1;    // ALU: rs1 + imm
+                alu_op     = 3'b000;  // ADD
+                result_src = 2'b10;   // write-back = PC + 4
+                jump       = 1'b1;
+                jalr       = 1'b1;    // target = ALU result (bit 0 gewist)
+            end
+
             default: begin
                 alu_op     = 3'b000;
                 alu_src    = 1'b0;
                 mem_read   = 1'b0;
                 mem_write  = 1'b0;
-                mem_to_reg = 1'b0;
+                result_src = 2'b00;
                 reg_write  = 1'b0;
                 branch     = 1'b0;
+                jump       = 1'b0;
+                jalr       = 1'b0;
             end
         endcase
     end

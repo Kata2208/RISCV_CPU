@@ -1,0 +1,24 @@
+# Verilator
+obj_dir/
+*.vcd
+*.fst
+*.log
+
+# GTKWave
+*.gtkw
+
+# Temporary files
+*.tmp
+*.bak
+
+# VS Code
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Generated binaries
+*.exe
+*.out
+``

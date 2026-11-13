@@ -6,7 +6,7 @@ module cpu (
     // Program Counter signals
     logic [31:0] pc_out;
     logic [31:0] pc_plus_4;
-    logic [31:0] pc_branch;
+    logic [31:0] pc_taget;
     logic [31:0] next_pc;
     logic        pc_src;
 
@@ -18,9 +18,11 @@ module cpu (
     logic        alu_src;
     logic        mem_read;
     logic        mem_write;
-    logic        mem_to_reg;
+    logic [1:0]  result_src;
     logic        reg_write;
     logic        branch;
+    logic        jump;
+    logic        jalr; 
     logic [4:0]  rs1_addr;
     logic [4:0]  rs2_addr;
     logic [4:0]  rd_addr;
@@ -43,12 +45,24 @@ module cpu (
 
     // Control & Datapath Logic
     assign pc_plus_4 = pc_out + 32'd4;
-    assign pc_branch = pc_out + imm_out;
-    assign pc_src    = branch & zero;
-    assign next_pc   = pc_src ? pc_branch : pc_plus_4;
+    assign pc_target = pc_out + imm_out;
+    assign pc_src    = jump | (branch & zero);
+    
+    always_comb begin
+        if (jalr)        next_pc = alu_result & 32'hFFFF_FFFE; // JALR: (rs1 + imm) & ~1
+        else if (pc_src) next_pc = pc_target;                  // JAL of genomen branch
+        else             next_pc = pc_plus_4;                  // Volgende instructie
+    end
 
     assign alu_b     = alu_src ? imm_out : rs2_data;
-    assign rd_data   = mem_to_reg ? ram_read_data : alu_result;
+    always_comb begin
+        case (result_src)
+            2'b00:   rd_data = alu_result;
+            2'b01:   rd_data = ram_read_data;
+            2'b10:   rd_data = pc_plus_4;
+            default: rd_data = alu_result;
+        endcase
+    end
 
     // ====================
     // Module Instantiations
@@ -75,9 +89,11 @@ module cpu (
         .alu_src    (alu_src),
         .mem_read   (mem_read),
         .mem_write  (mem_write),
-        .mem_to_reg (mem_to_reg),
+        .result_src (result_src),
         .reg_write  (reg_write),
-        .branch     (branch)
+        .branch     (branch),
+        .jump       (jump),
+        .jalr       (jalr)
     );
 
     imm_gen imm_gen_inst (
