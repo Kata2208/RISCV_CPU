@@ -9,6 +9,7 @@ module cpu (
     logic [31:0] pc_target;
     logic [31:0] next_pc;
     logic        pc_src;
+    logic        branch_taken;
 
     // Instruction Memory signal
     logic [31:0] instruction;
@@ -22,7 +23,7 @@ module cpu (
     logic        reg_write;
     logic        branch;
     logic        jump;
-    logic        jalr; 
+    logic        jalr;
     logic [4:0]  rs1_addr;
     logic [4:0]  rs2_addr;
     logic [4:0]  rd_addr;
@@ -43,18 +44,39 @@ module cpu (
     // Data Memory output
     logic [31:0] ram_read_data;
 
+    // ====================
     // Control & Datapath Logic
+    // ====================
+
+    // Branch comparator (evalueert funct3 voor BEQ, BNE, BLT, BGE, BLTU, BGEU)
+    always_comb begin
+        case (instruction[14:12])
+            3'b000:  branch_taken = (rs1_data == rs2_data);                   // BEQ
+            3'b001:  branch_taken = (rs1_data != rs2_data);                   // BNE
+            3'b100:  branch_taken = ($signed(rs1_data) <  $signed(rs2_data)); // BLT
+            3'b101:  branch_taken = ($signed(rs1_data) >= $signed(rs2_data)); // BGE
+            3'b110:  branch_taken = (rs1_data <  rs2_data);                   // BLTU
+            3'b111:  branch_taken = (rs1_data >= rs2_data);                   // BGEU
+            default: branch_taken = 1'b0;
+        endcase
+    end
+
+    // PC-berekeningen
     assign pc_plus_4 = pc_out + 32'd4;
     assign pc_target = pc_out + imm_out;
-    assign pc_src    = jump | (branch & zero);
-    
+    assign pc_src    = jump | (branch & branch_taken);
+
+    // Next-PC multiplexer
     always_comb begin
         if (jalr)        next_pc = alu_result & 32'hFFFF_FFFE; // JALR: (rs1 + imm) & ~1
         else if (pc_src) next_pc = pc_target;                  // JAL of genomen branch
         else             next_pc = pc_plus_4;                  // Volgende instructie
     end
 
-    assign alu_b     = alu_src ? imm_out : rs2_data;
+    // ALU input B multiplexer
+    assign alu_b = alu_src ? imm_out : rs2_data;
+
+    // Write-back multiplexer (3:1) voor rd_data
     always_comb begin
         case (result_src)
             2'b00:   rd_data = alu_result;
