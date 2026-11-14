@@ -8,6 +8,9 @@ module tb_cpu;
         .reset(reset)
     );
 
+    // PC-monitor: vertaalt de PC naar een functienaam (funcs.txt)
+    pc_monitor mon (.clk(clk), .rst(reset), .pc(dut.pc_inst.pc_out));
+
     // Clock generation (10ns period)
     initial begin
         clk = 0;
